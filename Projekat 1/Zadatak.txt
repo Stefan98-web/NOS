@@ -1,0 +1,13 @@
+Modifikovati Linux kernel tako da proširi funkcionalnost za rad sa procesima, eventualnim
+proširenjem task_struct, na oba načina:
+
+a. Dodavanjem novog sistemskog poziva (system call)
+b. Dodavanjem novog kernel modula
+
+Za datoteku koja je zadata putanjom do datoteke, vratiti listu procesa koji tu datoteku koriste, u
+smislu da imaju otvoren file descriptor koji referencira i-node te datoteke. Procesi u listi treba da
+budu predstavljeno osnovnim informacijama iz njihovog task_struct (PID, prioritet procesa, nice
+vrednost dodeljena procesu, korisničko ime vlasnika procesa, količina memorije koju proces
+koristi, vreme izvršenja procesa, …).
+
+Kreirati veći broj demo procesa i testirati sistemski poziv i kernel modul.

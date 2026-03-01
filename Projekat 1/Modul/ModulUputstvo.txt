@@ -1,0 +1,76 @@
+Dokumentacija implementacije Linux kernel modula za listanje procesa po otvorenoj datoteci
+1. U okviru zadatka realizovan je Linux kernel modul koji omogućava pronalaženje svih procesa koji imaju otvoren file descriptor
+nad datotekom zadatom putanjom.Modul prolazi kroz sve procese u sistemu, proverava njihove otvorene fajl deskriptore i upoređuje
+i-node strukturu sa i-node strukturom zadate datoteke. Ukoliko postoji poklapanje, proces se ispisuje zajedno sa osnovnim 
+informacijama iz njegove task_struct strukture. Rešenje je implementirano kao dinamički kernel modul (.ko), koji se može 
+učitati i ukloniti bez rekompajliranja kernela.
+
+2. Struktura projekta
+Modul je organizovan u posebnom direktorijumu:
+
+file_proc_list/
+- file_proc_list.c
+- Makefile
+
+3. Implementacija modula
+
+Glavni izvorni fajl:
+file_proc_list.c
+
+Modul:
+prima parametar filename (putanja do datoteke),
+koristi kern_path() za dobijanje struct path,
+izdvaja inode strukturu datoteke,
+prolazi kroz sve procese pomoću for_each_process,
+prolazi kroz sve otvorene fajl deskriptore svakog procesa,
+poredi f->f_inode sa inode-om zadate datoteke,
+ispisuje osnovne informacije o procesu (PID, prioritet, nice vrednost, itd.)
+
+4. Makefile konfiguracija
+Za kompajliranje modula korišćen je standardni Kbuild sistem Linux kernela.
+
+Sadržaj Makefile fajla:
+obj-m += file_proc_list.o
+all:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+
+Objašnjenje:
+obj-m definiše modul koji se gradi
+-C prelazi u direktorijum sa kernel build sistemom
+M=$(PWD) označava trenutni direktorijum kao lokaciju modula
+
+5. Kompajliranje modula
+
+Iz direktorijuma file_proc_list/ izvršena je komanda:
+make
+
+Ako kompajliranje prođe bez greške, generiše se fajl:
+file_proc_list.ko
+
+6. Učitavanje i testiranje modula
+
+6.1 Učitavanje modula
+Modul se učitava komandom:
+sudo insmod file_proc_list.ko filename="/putanja/do/datoteke"
+Parametar filename predstavlja apsolutnu putanju do datoteke čiji se otvoreni deskriptori proveravaju.
+
+6.2 Provera rada modula
+Rezultati rada modula proveravaju se pomoću:
+dmesg | tail -n 50
+U kernel logu se pojavljuju informacije o procesima koji imaju otvoren file descriptor nad zadatom datotekom.
+
+Ispis sadrži:
+PID procesa
+ime procesa (comm)
+prioritet
+nice vrednost
+UID korisnika
+
+6.3 Uklanjanje modula
+Modul se uklanja iz kernela komandom:
+sudo rmmod file_proc_list
+
+Nakon uklanjanja može se proveriti log:
+dmesg | tail -n 20

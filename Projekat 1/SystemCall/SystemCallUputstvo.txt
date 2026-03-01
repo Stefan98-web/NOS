@@ -1,0 +1,197 @@
+1. U okviru zadatka realizovana je modifikacija Linux kernela dodavanjem novog sistemskog poziva find_procs_by_file.
+Cilj sistemskog poziva je da, na osnovu putanje do datoteke, u kernel prostoru pronađe sve procese koji imaju otvoren 
+file deskriptor koji referencira i-node te datoteke.
+
+Za implementaciju je korišćen izvorni kod kernela verzije:
+Linux kernel 5.15.196
+
+2. Preuzimanje i priprema Linux source koda
+Izvorni kod kernela je preuzet sa zvaničnog kernel repozitorijuma:
+wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.196.tar.gz
+
+Raspakivanje arhive:
+sudo tar -xzf linux-5.15.196.tar.gz
+
+Pozicioniranje u source folder:
+cd linux-5.15.196
+
+Time je pripremljeno radno okruženje za modifikaciju kernela.
+
+3. Implementacija sistemskog poziva
+3.1 Kreiranje izvorne datoteke
+
+Nova datoteka je kreirana u direktorijumu:
+kernel/sys_file_users.c
+
+Komandom:
+sudo nano kernel/sys_file_users.c
+
+U ovoj datoteci implementirana je funkcija:
+SYSCALL_DEFINE2(find_procs_by_file, const char __user *, path, struct proc_info __user *, out)
+
+    Time je definisan sistemski poziv sa dva argumenta:
+    path – putanja do datoteke u korisničkom prostoru
+    out – pokazivač na niz struktura proc_info u korisničkom prostoru
+
+    Poziv vraća broj pronađenih procesa ili negativan kod greške.
+
+    2. Rezolucija putanje i dobijanje i-node strukture
+    Putanja iz korisničkog prostora se prevodi u kernel strukturu pomoću:
+    kern_path(path, LOOKUP_FOLLOW, &p)
+    Time se dobija:
+    struct path
+    zatim struct inode preko p.dentry->d_inode
+    Ovo omogućava rad na nivou VFS sloja (Virtual File System).
+    Nakon dobijanja i-node strukture, referenca se oslobađa pozivom:
+    path_put(&p);
+    Time je obezbeđeno pravilno upravljanje referencama u kernelu.
+
+    3. Iteracija kroz sve procese u sistemu
+    Za obilazak svih procesa koristi se kernel makro:
+    for_each_process(task)
+    Ovim se prolazi kroz globalnu listu svih task_struct objekata.
+    Da bi se obezbedila bezbednost pristupa tokom iteracije, koristi se:
+    rcu_read_lock();
+    ...
+    rcu_read_unlock();
+    RCU mehanizam za sinhronizaciju u kernelu.
+
+    4. Pristup tabeli otvorenih file descriptor-a
+    Za svaki proces:
+    task_lock(task);
+    fdt = files_fdtable(task->files);
+    Time se dobija:
+    tabela otvorenih file descriptor-a (fdtable)
+    niz struct file *
+    Iteracijom kroz fdt->max_fds proverava se svaki otvoreni fajl:
+    f = fdt->fd[fd];
+    if (f && f->f_inode == inode)
+
+    Ovde se vrši ključna operacija:
+
+    - poređenje i-node strukture otvorenog fajla
+    - sa i-node strukturom zadate datoteke
+
+    Time se precizno identifikuju procesi koji imaju otvoren file descriptor nad tom datotekom.
+
+    5. Prikupljanje informacija o procesu
+    Za svaki odgovarajući proces popunjava se struktura:
+    struct proc_info info;
+    Prikupljene informacije uključuju:
+    task->pid → PID procesa
+    task->prio → kernel prioritet
+    task_nice(task) → nice vrednost
+    task->cred->uid → UID vlasnika procesa
+    task->mm->total_vm << PAGE_SHIFT → veličina virtuelne memorije u bajtovima
+    task->utime → korisničko CPU vreme
+    task->stime → sistemsko CPU vreme
+
+    Ovim je demonstriran direktan pristup task_struct i mm_struct strukturama.
+
+    6. Prenos podataka u korisnički prostor
+    Popunjena struktura se prenosi u user space pomoću:
+    copy_to_user(&out[copied], &info, sizeof(info))
+    Ovo pokazuje:
+    -pravilno razdvajanje user i kernel prostora
+    -bezbedan prenos podataka
+    -proveru greške (-EFAULT)
+
+    Brojač copied prati koliko je procesa upisano u izlazni niz.
+
+    7. Povratna vrednost sistemskog poziva
+    Na kraju funkcije:
+    return copied;
+    Sistemski poziv vraća broj pronađenih procesa
+    ili odgovarajući negativni kod greške (-ENOENT, -EFAULT)
+    Time je implementiran standardni Linux model povratnih vrednosti sistemskih poziva.
+    
+    Implementirano je:
+    Integracija novog sistemskog poziva u Linux kernel
+    Rad sa VFS slojem (kern_path, inode)
+    Iteracija kroz sve procese u kernelu
+    Pristup file descriptor tabeli procesa
+    Poređenje i-node struktura na nivou kernela
+    Pristup internim poljima task_struct i mm_struct
+    Korišćenje RCU mehanizma za bezbednu iteraciju
+    Bezbedan prenos podataka između kernel i user prostora
+    Implementacija standardne semantike grešaka sistemskih poziva
+    -------------------------------------------
+    Potencijalni problemi:
+    nema ograničenja maksimalnog broja elemenata u out nizu
+    nema provere da li je task->files NULL
+    nema zaštite ako task->mm nestane tokom iteracije
+    linearna složenost O(n * fds)
+    -------------------------------------------
+
+4. Registracija sistemskog poziva
+4.1 Dodavanje u kernel/Makefile
+    U fajlu:
+    kernel/Makefile
+    dodata je sledeća linija unutar sekcije obj-y:
+    obj-y += sys_file_users.o
+    Ovim je osigurano da se nova datoteka uključi u proces build-a kernela.
+
+4.2 Registracija u syscall tabeli
+    U fajlu:
+    arch/x86/entry/syscalls/syscall_64.tbl
+    dodata je linija:
+    449   common   find_procs_by_file   sys_find_procs_by_file
+
+Ovim je:
+dodeljen broj sistemskog poziva (449)
+registrovano ime syscall-a
+povezano ime sa implementacionom funkcijom
+Time je sistemski poziv postao deo ABI interfejsa kernela.
+
+5. Rekompajliranje kernela
+Pre build procesa izvršeno je čišćenje i prilagođavanje konfiguracije:
+
+sudo bash -c 'set -e; \
+cp .config .config.backup; \
+make mrproper; \
+cp .config.backup .config; \
+sed -i "s/^CONFIG_X86_X32=y/# CONFIG_X86_X32 is not set/" .config; \
+sed -i "s/^CONFIG_KHEADERS=y/# CONFIG_KHEADERS is not set/" .config; \
+sed -i "s/^CONFIG_SELINUX=y/# CONFIG_SELINUX is not set/" .config; \
+sed -i "s/^CONFIG_SECURITY=y/# CONFIG_SECURITY is not set/" .config; \
+sed -i "s/^CONFIG_SECURITY_SELINUX=y/# CONFIG_SECURITY_SELINUX is not set/" .config; \
+sed -i "s/^CONFIG_EFIVAR_FS=y/# CONFIG_EFIVAR_FS is not set/" .config; \
+yes "" | make oldconfig; \
+echo "Kernel tree cleaned, problematic options disabled, ready for fresh build."'
+
+Nakon toga izvršena je kompilacija kernela:
+sudo make -j2
+
+Instalacija modula:
+sudo make modules_install
+
+Instalacija kernela:
+sudo make install
+
+Restart sistema:
+sudo reboot
+
+Nakon restarta sistem je podignut sa novom verzijom kernela koja sadrži implementirani sistemski poziv.
+
+6. Testiranje sistemskog poziva iz korisničkog prostora
+
+Provera da li postoji systemcall koji smo razvili u kernelu:
+grep find_procs_by_file /proc/kallsyms
+
+Kreiran je test program:
+sudo nano test_syscall.c
+
+Program koristi syscall() funkciju i broj 449 kako bi pozvao novi sistemski poziv.
+
+Kompajliranje programa:
+gcc test_syscall.c -o test_syscall
+
+Pokretanje testa:
+./test_syscall /etc/passwd
+
+Putanja do datoteke se prosleđuje kao argument komandne linije.
+
+Na ovaj način potvrđeno je da:
+- sistemski poziv pravilno prima argument iz user prostora
+- kernel pravilno pronalazi procese koji koriste datoteku
+- komunikacija između user i kernel prostora funkcioniše bez grešaka
