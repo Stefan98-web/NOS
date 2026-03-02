@@ -51,6 +51,9 @@ file_proc_list.ko
 
 6. Učitavanje i testiranje modula
 
+Pokretanje 10 procesa:
+for i in {1..10}; do tail -f /etc/passwd & done
+
 6.1 Učitavanje modula
 Modul se učitava komandom:
 sudo insmod file_proc_list.ko filename="/putanja/do/datoteke"
