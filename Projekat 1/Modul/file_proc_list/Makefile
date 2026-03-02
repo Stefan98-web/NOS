@@ -1,4 +1,4 @@
-obj-m += users.o
+obj-m += file_proc_list.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
