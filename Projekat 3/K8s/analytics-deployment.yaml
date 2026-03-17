@@ -21,7 +21,15 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: DB_HOST
+        - name: POSTGRES_DB
+          value: analyticsdb
+        - name: POSTGRES_USER
+          value: user
+        - name: POSTGRES_PASSWORD
+          value: pass
+        - name: POSTGRES_HOST
           value: postgres-analytics
+        - name: POSTGRES_PORT
+          value: "5432"
         - name: RABBITMQ_HOST
           value: rabbitmq

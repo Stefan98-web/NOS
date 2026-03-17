@@ -20,8 +20,23 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
         env:
         - name: RABBITMQ_HOST
           value: rabbitmq
         - name: DB_HOST
           value: postgres-iot
+        - name: POSTGRES_USER
+          value: user
+        - name: POSTGRES_PASSWORD
+          value: pass
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: iotdb

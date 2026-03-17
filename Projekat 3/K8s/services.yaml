@@ -24,7 +24,7 @@ spec:
     app: analytics-service
   ports:
   - port: 80
-    targetPort: 8000
+    targetPort: 8001
     nodePort: 30008
 ---
 apiVersion: v1
