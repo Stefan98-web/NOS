@@ -1,9 +1,10 @@
+minikube start
+kubectl apply -f ./K8s
+
 terminal 0: 
         minikube service iot-service -n iot-demo --url
-        kubectl port-forward service/iot-service 8080:80 -n iot-demo
-        kubectl port-forward service/analytics-service 8090:80 -n iot-demo
 terminal 1: 
-        winget install k6
+        (winget install k6)
         kubectl get pods -w
 terminal 2: 
         k6 run --vus 10000 --duration 1m script.js
