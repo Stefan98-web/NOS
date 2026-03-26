@@ -26,5 +26,5 @@ export default function () {
     },
   };
 
-  http.post('http://127.0.0.1:53200/iot-data', payload, params); //use minikube tunnel to iot-service
+  http.post('http://127.0.0.1:55468/iot-data', payload, params);
 }
