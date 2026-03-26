@@ -5,7 +5,7 @@ terminal 0:
         minikube service iot-service -n iot-demo --url
 terminal 1: 
         (winget install k6)
-        kubectl get pods -w
+        kubectl get pods -w -n iot-demo
 terminal 2: 
         k6 run --vus 10000 --duration 1m script.js
 
