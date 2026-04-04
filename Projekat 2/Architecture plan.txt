@@ -1,0 +1,115 @@
+### Ideja male IoT arhitekture (Zephyr + ROS2)
+
+#### Komponente sistema
+
+**1. Edge uređaj (MCU)**
+Mikrokontroler (npr. Arduino Nano 33 BLE Sense ili ESP32) pokreće Zephyr RTOS aplikaciju koja:
+
+* periodično prikuplja vrednosti senzora (temperatura, vlažnost ili simulirani podaci),
+* prikazuje očitane vrednosti preko serijskog interfejsa,
+* šalje podatke ka centralnom sistemu,
+* izvršava jednostavnu lokalnu aktuaciju (npr. uključivanje LED diode ako vrednost pređe zadati prag).
+
+
+**2. Centralni sistem (ROS2)**
+Na računaru se pokreće ROS2 aplikacija unutar Docker kontejnera. Ona se sastoji od nekoliko ROS2 čvorova:
+
+* **sensor interface node** – prima podatke sa MCU uređaja (preko UART ili MQTT)
+* **processing node** – analizira primljene podatke i proverava definisane uslove
+* **actuator node** – pokreće aktuaciju kada se ispune određeni uslovi (npr. generiše komandu ili prikazuje poruku)
+
+#### Testiranje sistema
+
+Sistem se testira u dva okruženja:
+
+1. **Na realnom IoT uređaju**
+   Zephyr aplikacija se kompajlira i flashuje na MCU uređaj gde prikuplja senzorske podatke i šalje ih ka računaru.
+
+2. **U Docker okruženju**
+   ROS2 aplikacija se pokreće unutar Docker kontejnera, gde obrađuje primljene podatke i izvršava logiku aktuacije.
+
+---
+
+#### Prednosti predložene arhitekture
+
+Predloženi sistem demonstrira ključne elemente IoT arhitekture:
+
+* rad real-time operativnog sistema na mikrokontroleru,
+* komunikaciju između edge uređaja i centralnog sistema,
+* obradu senzorskih podataka,
+* automatizovanu aktuaciju na osnovu definisanih uslova,
+* korišćenje kontejnerskog okruženja za razvoj i testiranje aplikacija.
+
+Na ovaj način projekat prikazuje kako se mali embedded sistemi mogu integrisati sa modernim softverskim platformama za obradu podataka i upravljanje uređajima.
+
+//Realizacija
+MCU (Zephyr, Nano 33 BLE Sense Lite)
+↓
+USB CDC (virtual COM port) custom data stream preko serijskog porta
+↓
+Serial reader (ROS2 node / Python node)
+↓
+ROS2 topic (npr. /imu_data)
+↓
+Processing node
+↓
+Actuator node
+
+/////////////////////////////////////Zephyr RTOS
+
+Download zephyr image
+docker pull modularmx/zephyros
+
+Run the container with a shared folder using the --mount flag; this will serve as your Zephyr workspace. 
+The container starts with the non root user named user with id of 1000, it is done like this to avoid permission conflicts
+in you project directory.
+
+docker run -it (--rm) -w /home/user/workspace --mount type=bind,src="$(pwd)",dst=/home/user/workspace modularmx/zephyros:latest
+
+Once the container is running you can run the west tool to build your projects.
+
+west init .
+west update
+west sdk install
+
+west build -b arduino_nano_33_ble -p always .
+
+//ON HOST: Flash to Arduino MCU from Folder on Host machine where Zephyr build is located.
+& "C:\Users\stefa\AppData\Local\Arduino15\packages\arduino\tools\bossac\1.9.1-arduino2\bossac.exe" -d -U -i -e -w -R -p COM3 "C:\Users\stefa\OneDrive\Desktop\NOS\NOS\Projekat 2\ZephyrApp\app\build\zephyr\zephyr.bin"
+
+Pokušao sam da koristim Zephyr sensor API sa LSM9DS1 driverom, ali inicijalizacija uređaja nije uspevala — device_is_ready() je vraćao false.
+Proverio sam komunikaciju direktnim čitanjem WHO_AM_I registra i potvrdio da I2C komunikacija radi ispravno.
+Zaključio sam da je problem u kompatibilnosti Zephyr drivera sa konkretnim boardom.
+Zato sam implementirao low-level pristup koristeći I2C API, gde sam ručno inicijalizovao senzor i čitao njegove registre.
+Na taj način sam uspešno dobio raw podatke sa akcelerometra, žiroskopa i magnetometra.
+
+STMicroelectronics LSM9DS1 datasheet:
+https://www.st.com/resource/en/datasheet/lsm9ds1.pdf
+
+Register map
+
+Sekcija: “Accelerometer and gyroscope register description”
+
+Direktno pokazuje:
+
+Accel output:
+OUT_X_L_XL = 0x28
+OUT_X_H_XL = 0x29
+OUT_Y_L_XL = 0x2A
+OUT_Y_H_XL = 0x2B
+OUT_Z_L_XL = 0x2C
+OUT_Z_H_XL = 0x2D
+
+Gyro output:
+OUT_X_L_G = 0x18
+OUT_X_H_G = 0x19
+OUT_Y_L_G = 0x1A
+OUT_Y_H_G = 0x1B
+OUT_Z_L_G = 0x1C
+OUT_Z_H_G = 0x1D
+
+Magnetometer :
+OUT_X_L_M = 0x28
+OUT_X_H_M = 0x29
+itd.
+///////////////////////////////////ROS2 

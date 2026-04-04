@@ -1,0 +1,21 @@
+/ {
+	chosen {
+		zephyr,console = &cdc_acm_uart0;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+&i2c1 {
+    lsm9ds1: lsm9ds1@6b {
+        status = "okay";
+    };
+
+    lsm9ds1_mag: lsm9ds1_mag@1e {
+        status = "okay";
+    };
+};
