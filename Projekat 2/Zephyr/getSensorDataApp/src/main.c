@@ -79,6 +79,7 @@ int main(void)
 
     gpio_pin_toggle_dt(&ledRed);
 
+    //gyro calibration
     for (int i = 0; i < 1000; i++) {
         i2c_burst_read(i2c, 0x6b, 0x18, bufG, 6);
 
@@ -99,6 +100,7 @@ int main(void)
 
     gpio_pin_toggle_dt(&ledRed);
 
+    //read sensors data
 	while (1) {
         gpio_pin_toggle_dt(&led);
 
