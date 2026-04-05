@@ -3,18 +3,18 @@
 #### Komponente sistema
 
 **1. Edge uređaj (MCU)**
-Mikrokontroler (npr. Arduino Nano 33 BLE Sense ili ESP32) pokreće Zephyr RTOS aplikaciju koja:
+Mikrokontroler (npr. Arduino Nano 33 BLE Sense) pokreće Zephyr RTOS aplikaciju koja:
 
-* periodično prikuplja vrednosti senzora (temperatura, vlažnost ili simulirani podaci),
-* prikazuje očitane vrednosti preko serijskog interfejsa,
+* periodično prikuplja vrednosti senzora (accel, gyro, Magnetometer),
+* salje očitane vrednosti preko serijskog interfejsa,
 * šalje podatke ka centralnom sistemu,
-* izvršava jednostavnu lokalnu aktuaciju (npr. uključivanje LED diode ako vrednost pređe zadati prag).
+* izvršava jednostavnu lokalnu aktuaciju (npr. uključivanje LED diode prilikom kalibracije i svaki put kada je u toku prikupljanje podataka).
 
 
-**2. Centralni sistem (ROS2)**
+2. Centralni sistem (ROS2)
 Na računaru se pokreće ROS2 aplikacija unutar Docker kontejnera. Ona se sastoji od nekoliko ROS2 čvorova:
 
-* **sensor interface node** – prima podatke sa MCU uređaja (preko UART ili MQTT)
+* **sensor interface node** – prima podatke sa MCU uređaja (preko serijskog interfejsa)
 * **processing node** – analizira primljene podatke i proverava definisane uslove
 * **actuator node** – pokreće aktuaciju kada se ispune određeni uslovi (npr. generiše komandu ili prikazuje poruku)
 
