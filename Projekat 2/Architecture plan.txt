@@ -113,3 +113,31 @@ OUT_X_L_M = 0x28
 OUT_X_H_M = 0x29
 itd.
 ///////////////////////////////////ROS2 
+winget install usbipd
+
+wsl --install -d Ubuntu-22.04 / connect to wsl distribution - wsl -d Ubuntu-22.04
+user:stefan
+pass:stefan
+
+Restart (obavezno)
+wsl --shutdown
+wsl -l -v (check all wsl statuses)
+
+//host win powershell
+usbipd list (should be: result 1-4    2fe3:0004  USB Serial Device (COM7))
+usbipd bind --busid 1-4
+usbipd attach --wsl Ubuntu-22.04 --busid 1-4
+ls /dev/tty* (find ACM0 binding)
+
+docker build -t ros2 . --no-cache
+docker run -it --rm --device=/dev/ttyACM0 --mount type=bind,src="$(pwd)",dst=/ros2_ws --group-add dialout ros2
+
+ros2 pkg create --build-type ament_python --node-name my_node my_package
+colcon build (from workspace root)
+source install/local_setup.bash
+ros2 run my_package my_node
+
+U drugom terminalu test:
+docker run -it --rm --device=/dev/ttyACM0 --mount type=bind,src="$(pwd)",dst=/ros2_ws --group-add dialout ros2
+ros2 topic list
+ros2 topic echo /sensorData
