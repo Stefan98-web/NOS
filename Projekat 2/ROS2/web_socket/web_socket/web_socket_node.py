@@ -44,7 +44,7 @@ class CubeWebServer(Node):
     async def handler(self, websocket):
         while True:
             await websocket.send(json.dumps(self.latest_quat))
-            await asyncio.sleep(0.02)  # 50Hz
+            await asyncio.sleep(0.01)  # 100Hz
 
     def start_server(self):
         loop = asyncio.new_event_loop()

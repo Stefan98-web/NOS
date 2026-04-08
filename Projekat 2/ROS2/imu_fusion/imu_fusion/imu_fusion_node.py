@@ -31,8 +31,9 @@ class IMUFusionNode(Node):
         )
 
         # Madgwick filter
-        self.filter = Madgwick()
+        self.filter = Madgwick(beta=0.01)
         self.quat = np.array([1.0, 0.0, 0.0, 0.0])  # w, x, y, z
+        self.last_time = None
 
         self.get_logger().info("IMU Fusion Node started")
 
@@ -43,6 +44,13 @@ class IMUFusionNode(Node):
         return v / norm
 
     def callback(self, msg):
+        now = self.get_clock().now().nanoseconds / 1e9
+
+        if self.last_time is not None:
+            dt = now - self.last_time
+            self.filter.Dt = dt
+
+        self.last_time = now
         try:
             data = json.loads(msg.data)
 
@@ -64,12 +72,12 @@ class IMUFusionNode(Node):
                 data['mag']['z']
             ], dtype=float)
 
-            # 🔧 NORMALIZATION (IMPORTANT)
-            acc = acc / 16384.0
+            #NORMALIZATION (IMPORTANT)
+            acc = self.normalize(acc)
             gyro = np.deg2rad(gyro / 131.0)  # assuming typical MPU scaling
             mag = self.normalize(mag)
 
-            # ❗ update filter
+            #update filter
             self.quat = self.filter.updateMARG(
                 self.quat,
                 gyr=gyro,

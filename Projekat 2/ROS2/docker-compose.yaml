@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+
+  serial_reader:
+    image: ros2
+    container_name: serial_node1
+    privileged: true
+    environment:
+      - ROS_DOMAIN_ID=0
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ./:/ros2_ws
+    networks:
+      - ros_net
+    command: bash -c "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && ros2 run serial_reader serial_reader_node"
+
+  imu_fusion:
+    image: ros2
+    container_name: imu_fusion_node2
+    environment:
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ./:/ros2_ws
+    networks:
+      - ros_net
+    command: bash -c "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && ros2 run imu_fusion imu_fusion_node"
+
+  web_socket:
+    image: ros2
+    container_name: web_socket_node3
+    ports:
+      - "8000:8000"
+    environment:
+      - ROS_DOMAIN_ID=0
+    volumes:
+      - ./:/ros2_ws
+    networks:
+      - ros_net
+    command: bash -c "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && ros2 run web_socket web_socket_node"
+
+networks:
+  ros_net:
+    driver: bridge

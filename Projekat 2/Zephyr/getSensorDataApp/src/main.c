@@ -127,6 +127,6 @@ int main(void)
         
         gpio_pin_toggle_dt(&led);
 
-        k_sleep(K_MSEC(100));
+        k_sleep(K_MSEC(10)); //100Hz
 	}
 }

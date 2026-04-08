@@ -26,4 +26,6 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # auto-source ROS
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc
 
+RUN source install/local_setup.bash
+
 CMD ["bash"]

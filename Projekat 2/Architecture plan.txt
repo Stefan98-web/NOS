@@ -113,6 +113,8 @@ OUT_X_L_M = 0x28
 OUT_X_H_M = 0x29
 itd.
 ///////////////////////////////////ROS2 
+https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Creating-Your-First-ROS2-Package.html
+
 winget install usbipd
 
 wsl --install -d Ubuntu-22.04 / connect to wsl distribution - wsl -d Ubuntu-22.04
