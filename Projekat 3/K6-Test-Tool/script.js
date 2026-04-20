@@ -26,5 +26,5 @@ export default function () {
     },
   };
 
-  http.post('http://127.0.0.1:55468/iot-data', payload, params);
+  http.post('http://127.0.0.1:63330/iot-data', payload, params);
 }

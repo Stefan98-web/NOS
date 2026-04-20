@@ -39,7 +39,7 @@ def consume():
             pika.ConnectionParameters(host='rabbitmq')
             )
             channel = connection.channel()
-            channel.queue_declare(queue='iot.analytics')
+            channel.queue_declare(queue='iot.analytics', durable=True)
             print("Connected to RabbitMQ")
             break
         except pika.exceptions.AMQPConnectionError:

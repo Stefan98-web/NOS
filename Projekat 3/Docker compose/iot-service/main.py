@@ -99,7 +99,7 @@ async def aggregation_worker(interval: int = 5):
         try:
             connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
             channel = connection.channel()
-            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=False)
+            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
 
             for r in results:
                 message = {
