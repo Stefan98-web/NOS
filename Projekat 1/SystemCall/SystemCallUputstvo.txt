@@ -117,9 +117,6 @@ SYSCALL_DEFINE2(find_procs_by_file, const char __user *, path, struct proc_info 
     Implementacija standardne semantike grešaka sistemskih poziva
     -------------------------------------------
     Potencijalni problemi:
-    nema ograničenja maksimalnog broja elemenata u out nizu
-    nema provere da li je task->files NULL
-    nema zaštite ako task->mm nestane tokom iteracije
     linearna složenost O(n * fds)
     -------------------------------------------
 
