@@ -143,3 +143,13 @@ U drugom terminalu test:
 docker run -it --rm --device=/dev/ttyACM0 --mount type=bind,src="$(pwd)",dst=/ros2_ws --group-add dialout ros2
 ros2 topic list
 ros2 topic echo /sensorData
+
+------------------------
+Pokretanje
+//on host windows powershell
+usbipd list (should be: result 1-4    2fe3:0004  USB Serial Device (COM7))
+usbipd bind --busid 1-4
+usbipd attach --wsl Ubuntu-22.04 --busid 1-4
+wsl -d Ubuntu-22.04
+cd ~/Projekat\ 2/packageCreator/
+docker-compose up --build
